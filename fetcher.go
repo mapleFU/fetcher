@@ -55,10 +55,11 @@ func remoteSSHFetch(address DBAddress, user string) (uint64, uint64) {
 		return 0, 0
 	}
 
-	if resp, errResp, err = sshApi.Run("ps -aux | grep tidb-server | awk {'print $5\" \"$11'}"); err != nil {
+	if resp, errResp, err = sshApi.Run("ps -aux | grep tidb-server | awk '{print $5\" \"$11;$0=$0} NF=NF'"); err != nil {
 		log.Warn("Failed to run: "+err.Error(), errResp)
 		return 0, 0
 	}
+	originResp := resp
 	resp = strings.Trim(resp, "\r\n")
 
 	var current uint64
@@ -71,6 +72,20 @@ func remoteSSHFetch(address DBAddress, user string) (uint64, uint64) {
 		if strings.Contains(arr[1], "grep") {
 			continue
 		}
+
+		statusCheckPass := false
+		statusString := fmt.Sprintf("status=%d", address.StatusPort)
+		// default status_port, no status or status=10080 is available
+		if address.StatusPort == 10080 {
+			if !strings.Contains(originResp, statusString) {
+				statusCheckPass = true
+			}
+		}
+		// otherwise, there should be a --status=status_port string
+		if !statusCheckPass {
+			statusCheckPass = strings.Contains(originResp, statusString)
+		}
+
 		val, err := strconv.Atoi(arr[0])
 		if err != nil {
 			continue
