@@ -43,7 +43,7 @@ func (s SpeedBound) Record(dbAddresses []DBAddress, user string, saveDir string)
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			avail, currentMem := FetchMemoryAndAvailable(currentAddress, user)
+			_, currentMem := FetchMemoryAndAvailable(currentAddress, user)
 			m, ok := s.lastMap.Load(currentAddress)
 			if ok {
 				lastMem := m.(uint64)
@@ -74,7 +74,7 @@ func (q QuantityBound) Record(dbAddresses []DBAddress, user string, saveDir stri
 	ipcounter := map[string]int{}
 
 	for _, v := range dbAddresses {
-		ipcounter[v.IP] = ipcounter[v] + 1
+		ipcounter[v.IP] = ipcounter[v.IP] + 1
 	}
 	for _, v := range dbAddresses {
 		currentAddress := v
