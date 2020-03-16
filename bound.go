@@ -4,6 +4,8 @@ import (
 	"sync"
 	"time"
 
+	log "github.com/sirupsen/logrus"
+
 	"github.com/shirou/gopsutil/process"
 )
 
@@ -43,7 +45,8 @@ func (s SpeedBound) Record(dbAddresses []DBAddress, user string, saveDir string)
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			_, currentMem := FetchMemoryAndAvailable(currentAddress, user)
+			avail, currentMem := FetchMemoryAndAvailable(currentAddress, user)
+			log.Infof("[Speed] avail is %d, current is %d", avail, currentMem)
 			m, ok := s.lastMap.Load(currentAddress)
 			if ok {
 				lastMem := m.(uint64)
@@ -76,6 +79,7 @@ func (q QuantityBound) Record(dbAddresses []DBAddress, user string, saveDir stri
 		wg.Add(1)
 		go func() {
 			avail, mem := FetchMemoryAndAvailable(currentAddress, user)
+			log.Infof("[Quantity] avail is %d, current is %d", avail, mem)
 			if float64(avail)*q.Proportion <= float64(mem) {
 				FetchFlameGraph(currentAddress, saveDir)
 			}

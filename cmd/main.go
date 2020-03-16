@@ -19,7 +19,7 @@ import (
 )
 
 var (
-	outputDir  = flag.String("output", "perf", "The directory to store collected profile data")
+	outputDir  = flag.String("output", ".", "The directory to store collected profile data")
 	configFile = flag.String("config", "config.yaml", "The config file for fetch scripts")
 )
 
