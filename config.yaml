@@ -1,0 +1,11 @@
+Address:
+  - Local: true
+    StatusPort: 10080
+    IP: 127.0.0.1
+
+Bound:
+  - type: speed
+    DeltaSecs: 30
+    DeltaMB: 25
+  - type: quantity
+    proportion: 0.6
