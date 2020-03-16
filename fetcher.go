@@ -1,23 +1,19 @@
 package fetcher
 
 import (
-	"bufio"
-	"bytes"
 	"fmt"
 	"io"
-	"net"
 	"net/http"
 	"os"
 	"path"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/eugenmayer/go-sshclient/sshwrapper"
 	"github.com/shirou/gopsutil/mem"
 	"github.com/shirou/gopsutil/process"
 	log "github.com/sirupsen/logrus"
-	"golang.org/x/crypto/ssh"
 )
 
 func FetchFlameGraph(address DBAddress, saveDir string) {
@@ -92,62 +88,29 @@ func FetchMemoryAndAvailable(address DBAddress, user string) (uint64, uint64) {
 }
 
 func remoteSSHFetch(address DBAddress, user string) (uint64, uint64) {
-	hostKey := getHostKey("")
-	cfg := ssh.ClientConfig{
-		User: user,
-		//HostKeyCallback: ssh.FixedHostKey(hostKey),
-		HostKeyCallback: func(hostname string, remote net.Addr, key ssh.PublicKey) error {
-			return nil
-		},
-		// optional host key algo list
-		HostKeyAlgorithms: []string{
-			ssh.KeyAlgoRSA,
-			ssh.KeyAlgoDSA,
-			ssh.KeyAlgoECDSA256,
-			ssh.KeyAlgoECDSA384,
-			ssh.KeyAlgoECDSA521,
-			ssh.KeyAlgoED25519,
-		},
-		// optional tcp connect timeout
-		Timeout: 5 * time.Second,
-	}
-	client, err := ssh.Dial("tcp", address.IP+":22", &cfg)
+	sshApi, err := sshwrapper.DefaultSshApiSetup(address.IP, 22, user, os.Getenv("HOME")+"/.ssh/id_rsa")
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer client.Close()
 
-	// start session
-	sess, err := client.NewSession()
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer sess.Close()
-
-	// setup standard out and error
-	// uses writer interface
-
-	// Once a Session is created, you can execute a single command on
-	// the remote side using the Run method.
-	var b bytes.Buffer
-	sess.Stdout = &b
-	if err := sess.Run("awk '/Mem:/ {print $2}' <(free -m)"); err != nil {
-		log.Warn("Failed to run: " + err.Error())
+	var resp, errResp string
+	if resp, errResp, err = sshApi.Run("awk '/Mem:/ {print $2}' <(free -m)"); err != nil {
+		log.Warn("Failed to run: "+err.Error(), errResp)
 		return 0, 0
 	}
-	total, err := strconv.Atoi(b.String())
+	total, err := strconv.Atoi(resp)
 	if err != nil {
 		log.Warn("Failed to run: " + err.Error())
 		return 0, 0
 	}
-	b.Truncate(0)
 
-	if err := sess.Run("ps -aux | grep tidb-server | awk {'print $5\" \"$11'}"); err != nil {
-		log.Warn("Failed to run: " + err.Error())
+	if resp, errResp, err = sshApi.Run("ps -aux | grep tidb-server | awk {'print $5\" \"$11'}"); err != nil {
+		log.Warn("Failed to run: "+err.Error(), errResp)
 		return 0, 0
 	}
+
 	var current uint64
-	avails := strings.Split(b.String(), "\n")
+	avails := strings.Split(resp, "\n")
 	for _, v := range avails {
 		arr := strings.Split(v, " ")
 		if len(arr) < 2 {
@@ -164,37 +127,4 @@ func remoteSSHFetch(address DBAddress, user string) (uint64, uint64) {
 	}
 
 	return uint64(total), current
-}
-
-func getHostKey(host string) ssh.PublicKey {
-	// parse OpenSSH known_hosts file
-	// ssh or use ssh-keyscan to get initial key
-	file, err := os.Open(filepath.Join(os.Getenv("HOME"), ".ssh", "known_hosts"))
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer file.Close()
-
-	scanner := bufio.NewScanner(file)
-	var hostKey ssh.PublicKey
-	for scanner.Scan() {
-		fields := strings.Split(scanner.Text(), " ")
-		if len(fields) != 3 {
-			continue
-		}
-		if strings.Contains(fields[0], host) {
-			var err error
-			hostKey, _, _, _, err = ssh.ParseAuthorizedKey(scanner.Bytes())
-			if err != nil {
-				log.Fatalf("error parsing %q: %v", fields[2], err)
-			}
-			break
-		}
-	}
-
-	if hostKey == nil {
-		log.Fatalf("no hostkey found for %s", host)
-	}
-
-	return hostKey
 }
