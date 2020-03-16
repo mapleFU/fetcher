@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"os"
 	"path"
@@ -93,8 +94,11 @@ func FetchMemoryAndAvailable(address DBAddress, user string) (uint64, uint64) {
 func remoteSSHFetch(address DBAddress, user string) (uint64, uint64) {
 	hostKey := getHostKey("")
 	cfg := ssh.ClientConfig{
-		User:            user,
-		HostKeyCallback: ssh.FixedHostKey(hostKey),
+		User: user,
+		//HostKeyCallback: ssh.FixedHostKey(hostKey),
+		HostKeyCallback: func(hostname string, remote net.Addr, key ssh.PublicKey) error {
+			return nil
+		},
 		// optional host key algo list
 		HostKeyAlgorithms: []string{
 			ssh.KeyAlgoRSA,
