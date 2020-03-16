@@ -81,7 +81,7 @@ func (q QuantityBound) Record(dbAddresses []DBAddress, user string, saveDir stri
 		wg.Add(1)
 		go func() {
 			avail, mem := FetchMemoryAndAvailable(currentAddress, user)
-			if float64(avail)*q.Proportion <= float64(mem)/float64(ipcounter[currentAddress.IP]) {
+			if float64(avail)*q.Proportion <= float64(mem) * float64(ipcounter[currentAddress.IP]) {
 				FetchFlameGraph(currentAddress, saveDir)
 			}
 		}()
