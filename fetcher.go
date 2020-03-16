@@ -91,8 +91,21 @@ func FetchMemoryAndAvailable(address DBAddress, user string) (uint64, uint64) {
 }
 
 func remoteSSHFetch(address DBAddress, user string) (uint64, uint64) {
+	hostKey := getHostKey("")
 	cfg := ssh.ClientConfig{
-		User: user,
+		User:            user,
+		HostKeyCallback: ssh.FixedHostKey(hostKey),
+		// optional host key algo list
+		HostKeyAlgorithms: []string{
+			ssh.KeyAlgoRSA,
+			ssh.KeyAlgoDSA,
+			ssh.KeyAlgoECDSA256,
+			ssh.KeyAlgoECDSA384,
+			ssh.KeyAlgoECDSA521,
+			ssh.KeyAlgoED25519,
+		},
+		// optional tcp connect timeout
+		Timeout: 5 * time.Second,
 	}
 	client, err := ssh.Dial("tcp", address.IP+":22", &cfg)
 	if err != nil {
