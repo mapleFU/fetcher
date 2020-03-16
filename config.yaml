@@ -1,9 +1,7 @@
 address:
-  - local: false
-    status_port: 23211
+  - status_port: 23211
     ip: 172.16.5.34
-  - local: true
-    status_port: 10080
+  - status_port: 10080
     ip: 127.0.0.1
 
 bounds:
