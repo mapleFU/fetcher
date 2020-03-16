@@ -4,8 +4,6 @@ import (
 	"sync"
 	"time"
 
-	log "github.com/sirupsen/logrus"
-
 	"github.com/shirou/gopsutil/process"
 )
 
@@ -46,7 +44,6 @@ func (s SpeedBound) Record(dbAddresses []DBAddress, user string, saveDir string)
 		go func() {
 			defer wg.Done()
 			avail, currentMem := FetchMemoryAndAvailable(currentAddress, user)
-			log.Infof("[Speed] avail is %d, current is %d", avail, currentMem)
 			m, ok := s.lastMap.Load(currentAddress)
 			if ok {
 				lastMem := m.(uint64)
@@ -74,13 +71,17 @@ type QuantityBound struct {
 
 func (q QuantityBound) Record(dbAddresses []DBAddress, user string, saveDir string) {
 	var wg sync.WaitGroup
+	ipcounter := map[string]int{}
+
+	for _, v := range dbAddresses {
+		ipcounter[v.IP] = ipcounter[v] + 1
+	}
 	for _, v := range dbAddresses {
 		currentAddress := v
 		wg.Add(1)
 		go func() {
 			avail, mem := FetchMemoryAndAvailable(currentAddress, user)
-			log.Infof("[Quantity] avail is %d, current is %d", avail, mem)
-			if float64(avail)*q.Proportion <= float64(mem) {
+			if float64(avail)*q.Proportion <= float64(mem)/float64(ipcounter[currentAddress.IP]) {
 				FetchFlameGraph(currentAddress, saveDir)
 			}
 		}()
