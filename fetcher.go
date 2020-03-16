@@ -24,7 +24,8 @@ func FetchFlameGraph(address DBAddress, saveDir string) {
 	}
 
 	defer resp.Body.Close()
-	fileName := path.Join(saveDir, fmt.Sprintf("%s-prof-%s", address.IP, time.Now().Format("2012-11-01T22:08:41+00:00")))
+	ipstr := strings.ReplaceAll(address.IP, ".", "-")
+	fileName := path.Join(saveDir, fmt.Sprintf("%s-prof-%d", ipstr, time.Now().Unix()))
 	f, err := os.Create(fileName)
 	if err != nil {
 		log.Warnf("Create file %s error", fileName)
@@ -110,7 +111,7 @@ func remoteSSHFetch(address DBAddress, user string) (uint64, uint64) {
 	}
 
 	var current uint64
-	avails := strings.Split(resp, "\n")
+	avails := strings.Split(resp, "\r\n")
 	for _, v := range avails {
 		arr := strings.Split(v, " ")
 		if len(arr) < 2 {
