@@ -8,5 +8,6 @@ require (
 	github.com/shirou/gopsutil v2.20.2+incompatible
 	github.com/sirupsen/logrus v1.4.2
 	github.com/stretchr/testify v1.3.0 // indirect
+	golang.org/x/crypto v0.0.0-20200311171314-f7b00557c8c4
 	gopkg.in/yaml.v2 v2.2.8
 )

@@ -1,11 +1,16 @@
-Address:
-  - Local: true
-    StatusPort: 10080
-    IP: 127.0.0.1
+address:
+  - local: false
+    status_port: 23211
+    ip: 172.16.5.34
+  - local: true
+    status_port: 10080
+    ip: 127.0.0.1
 
-Bound:
+bounds:
   - type: speed
     DeltaSecs: 30
     DeltaMB: 25
   - type: quantity
     proportion: 0.6
+
+user: tidb

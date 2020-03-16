@@ -8,15 +8,16 @@ import (
 )
 
 type DBAddress struct {
-	IP         string
-	StatusPort uint64
-	Local      bool
+	IP         string `json:"ip"`
+	StatusPort uint64 `json:"status_port" yaml:"status_port"`
+	Local      bool   `json:"local"`
+	User       string `json:"user,omitempty"`
 
 	mayProc *process.Process
 }
 
 type Bound interface {
-	Record(dbAddresses []DBAddress)
+	Record(dbAddresses []DBAddress, user string, saveDir string)
 	CheckDuration() time.Duration
 }
 
@@ -35,19 +36,19 @@ func NewSpeedBound(DeltaSecs, DeltaMB uint64) Bound {
 	}
 }
 
-func (s SpeedBound) Record(dbAddresses []DBAddress) {
+func (s SpeedBound) Record(dbAddresses []DBAddress, user string, saveDir string) {
 	var wg sync.WaitGroup
 	for _, v := range dbAddresses {
 		currentAddress := v
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			currentMem := FetchMemory(currentAddress)
+			_, currentMem := FetchMemoryAndAvailable(currentAddress, user)
 			m, ok := s.lastMap.Load(currentAddress)
 			if ok {
 				lastMem := m.(uint64)
 				if currentMem-lastMem > s.DeltaMB {
-					FetchFlameGraph(currentAddress)
+					FetchFlameGraph(currentAddress, saveDir)
 				}
 			}
 			s.lastMap.Store(currentAddress, currentMem)
@@ -68,16 +69,15 @@ type QuantityBound struct {
 	Proportion float64
 }
 
-func (q QuantityBound) Record(dbAddresses []DBAddress) {
+func (q QuantityBound) Record(dbAddresses []DBAddress, user string, saveDir string) {
 	var wg sync.WaitGroup
 	for _, v := range dbAddresses {
 		currentAddress := v
 		wg.Add(1)
 		go func() {
-			mem := FetchMemory(currentAddress)
-			avail := FetchAvailable(currentAddress)
+			avail, mem := FetchMemoryAndAvailable(currentAddress, user)
 			if float64(avail)*q.Proportion <= float64(mem) {
-				FetchFlameGraph(currentAddress)
+				FetchFlameGraph(currentAddress, saveDir)
 			}
 		}()
 	}

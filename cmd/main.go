@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"encoding/json"
+	"flag"
 	"io/ioutil"
 	"os"
 	"os/signal"
@@ -16,9 +18,17 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+var (
+	outputDir  = flag.String("output", "perf", "The directory to store collected profile data")
+	configFile = flag.String("config", "config.yaml", "The config file for fetch scripts")
+)
+
 type Config struct {
 	Bounds  []fetcher.Bound
 	Address []fetcher.DBAddress
+
+	OutputDir string
+	User      string
 }
 
 func ParseConfig(cfg string) *Config {
@@ -33,16 +43,18 @@ func ParseConfig(cfg string) *Config {
 	}
 
 	dataMap := struct {
-		Bounds  []map[string]string
-		Address []fetcher.DBAddress
+		Bounds  []map[string]string `json:"bounds"`
+		Address []fetcher.DBAddress `json:"address"`
+		User    string              `json:"user"`
 	}{}
-	err = yaml.Unmarshal(b, dataMap)
+	err = yaml.Unmarshal(b, &dataMap)
 	if err != nil {
 		panic(err)
 	}
 
 	c := Config{}
 	c.Address = dataMap.Address
+	c.User = dataMap.User
 
 	for _, v := range dataMap.Bounds {
 		tp, e := v["type"]
@@ -76,7 +88,13 @@ func ParseConfig(cfg string) *Config {
 }
 
 func main() {
-	cfg := ParseConfig("config.yaml")
+	flag.Parse()
+
+	cfg := ParseConfig(*configFile)
+	cfg.OutputDir = *outputDir
+
+	b, _ := json.Marshal(cfg)
+	log.Infof("Config is %s", string(b))
 
 	ctx, cancel := context.WithCancel(context.TODO())
 
@@ -92,17 +110,17 @@ func main() {
 		cancel()
 	}()
 
-	Run(ctx, cfg.Bounds, cfg.Address)
+	Run(ctx, cfg)
 }
 
-func Run(ctx context.Context, bounds []fetcher.Bound, address []fetcher.DBAddress) {
-	for _, bound := range bounds {
+func Run(ctx context.Context, cfg *Config) {
+	for _, bound := range cfg.Bounds {
 		currentBound := bound
 		go func() {
 			for true {
 				select {
 				case <-time.After(currentBound.CheckDuration()):
-					currentBound.Record(address)
+					currentBound.Record(cfg.Address, cfg.User, cfg.OutputDir)
 				case <-ctx.Done():
 					break
 				}
