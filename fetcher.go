@@ -84,6 +84,9 @@ func remoteSSHFetch(address DBAddress, user string) (uint64, uint64) {
 		// otherwise, there should be a --status=status_port string
 		if !statusCheckPass {
 			statusCheckPass = strings.Contains(originResp, statusString)
+			if !statusCheckPass {
+				continue
+			}
 		}
 
 		val, err := strconv.Atoi(arr[0])
