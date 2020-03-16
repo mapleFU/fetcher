@@ -30,4 +30,4 @@ user: tidb
 ./fetcher -config=config.yaml -output=perf
 ```
 
-
+如果条件判断出现问题，会在本地生成类似 `172-16-5-34-perf-1584345385` 的文件，前面一段是 ip, 最后是一个 unix time stamp.
