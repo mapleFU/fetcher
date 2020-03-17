@@ -90,5 +90,5 @@ func (q QuantityBound) Record(dbAddresses []DBAddress, user string, saveDir stri
 }
 
 func (q QuantityBound) CheckDuration() time.Duration {
-	return 30 * time.Second
+	return 90 * time.Second
 }

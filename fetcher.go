@@ -15,7 +15,7 @@ import (
 )
 
 func FetchFlameGraph(address DBAddress, saveDir string) {
-	getAddress := fmt.Sprintf("http://%s:%d/debug/pprof/profile", address.IP, address.StatusPort)
+	getAddress := fmt.Sprintf("http://%s:%d/debug/zip?seconds=60", address.IP, address.StatusPort)
 	resp, err := http.Get(getAddress)
 	if err != nil {
 		log.Warnf("Get flameGraph from %s error", getAddress, err.Error())
@@ -24,7 +24,7 @@ func FetchFlameGraph(address DBAddress, saveDir string) {
 
 	defer resp.Body.Close()
 	ipstr := strings.ReplaceAll(address.IP, ".", "-")
-	fileName := path.Join(saveDir, fmt.Sprintf("%s-prof-%d", ipstr, time.Now().Unix()))
+	fileName := path.Join(saveDir, fmt.Sprintf("%s-prof-%d.zip", ipstr, time.Now().Unix()))
 	f, err := os.Create(fileName)
 	if err != nil {
 		log.Warnf("Create file %s error", fileName)
