@@ -24,7 +24,7 @@ func FetchFlameGraph(address DBAddress, saveDir string) {
 
 	defer resp.Body.Close()
 	ipstr := strings.ReplaceAll(address.IP, ".", "-")
-	fileName := path.Join(saveDir, fmt.Sprintf("%s-prof-%d.zip", ipstr, time.Now().Unix()))
+	fileName := path.Join(saveDir, fmt.Sprintf("%s-%d-prof-%d.zip", ipstr, address.StatusPort, time.Now().Unix()))
 	f, err := os.Create(fileName)
 	if err != nil {
 		log.Warnf("Create file %s error", fileName)
